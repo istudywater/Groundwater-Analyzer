@@ -5,6 +5,8 @@ import pandas as pd
 
 st.title("Groundwater Monitoring Summary")
 
+st.markdown("This webapp takes two input files (laboratory results and facility-specific groundwater protection standards) and generates a summary table of detections and comparison to the GWPS values. For the laboratory data, the required header names are: Client Sample ID, Results and High Limit. Client Sample ID is the monitoring well ID, Result is for the detection and High Limit is the detection limit. The detection limit is used to convert ND values to < detection limit values. Additionally, monitoring well ID must be added manually. For the GWPS workbook, the webapp is looking for columns with the constituent name and another for the GWPS value.")
+
 lab_file = st.file_uploader("Upload Lab Data (.xlsx)", type=["xlsx","xls"])
 gwps_file = st.file_uploader("Upload GWPS Table (.xlsx)", type=["xlsx","xls"])
 wells = st.text_input("Well IDs (comma separated)", "MW-1,MW-2,MW-3,MW-4,MW-5,MW-6")
@@ -42,3 +44,7 @@ if run:
                 file_name="GW_Summary.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+# ——— Links ———
+st.markdown(
+    "[🔗 GitHub](https://github.com/istudywater/groundwater-analyzer) | "
+    "[🔗 LinkedIn](https://www.linkedin.com/in/istudywater/)")
