@@ -45,6 +45,6 @@ if run:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 # ——— Links ———
-st.markdown(
+st.markdown("Vibe coded by Bryan B. Smith"
     "[🔗 GitHub](https://github.com/istudywater/groundwater-analyzer) | "
     "[🔗 LinkedIn](https://www.linkedin.com/in/istudywater/)")

@@ -1,0 +1,7 @@
+[theme]
+base="dark"                 # or "light"
+primaryColor="#10614dff"       # Sage
+#backgroundColor="#FFFFFF"    # app background
+#secondaryBackgroundColor="#F0F2F6"
+#textColor="#262730"
+#font="sans serif"
