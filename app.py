@@ -2,8 +2,9 @@ import streamlit as st
 from gw_summary.core import generate_gw_summary
 import io
 import pandas as pd
+import os
 
-st.title("Groundwater Quality Analyzer (beta)")
+st.title("Groundwater Quality Analyzer")
 
 st.markdown("This webapp takes two input files (laboratory results and facility-specific groundwater protection standards) and generates a summary table of detections and comparison to the GWPS values. For the laboratory data, the required header names are: Client Sample ID, Results and High Limit. Client Sample ID is the monitoring well ID, Result is for the detection and High Limit is the detection limit. The detection limit is used to convert ND values to < detection limit values. Additionally, monitoring well ID must be added manually. For the GWPS workbook, the webapp is looking for columns with the constituent name and another for the GWPS value.")
 
@@ -44,6 +45,38 @@ if run:
                 file_name="GW_Summary.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
+# ——— Sample dataset downloads ———
+st.markdown("### 🔍 Download Sample Datasets")
+
+# 1) Lab data template
+lab_template_path = os.path.join(os.getcwd(), "lab_data_sample.xlsx")
+with open(lab_template_path, "rb") as f:
+    lab_bytes = f.read()
+
+st.download_button(
+    label="📥 Download sample lab data",
+    data=lab_bytes,
+    file_name="lab_data_sample.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+# 2) GWPS template
+gwps_template_path = os.path.join(os.getcwd(), "gwps.xlsx")
+with open(gwps_template_path, "rb") as f:
+    gwps_bytes = f.read()
+
+st.download_button(
+    label="📥 Download sample GWPS",
+    data=gwps_bytes,
+    file_name="gwps.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+st.markdown("---")
+
+# … rest of your upload widgets and processing logic …
+
 # ——— Links ———
 st.markdown("To report issues, please contact me via LinkedIn.")
 st.markdown("To share your opinion of this webapp, please use the [feedback form](https://docs.google.com/forms/d/e/1FAIpQLSee-rxz_gHT8JACxRr62wHWgb8np3qBsZIGMP8GM9R3NnUv_g/viewform?usp=header)")
