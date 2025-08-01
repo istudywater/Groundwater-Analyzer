@@ -33,12 +33,3 @@ def format_dataset_app():
         st.download_button("📥 Download Long Format Excel", to_excel(long_df),
                            "long_format_dataset.xlsx",
                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    # --------------------------------------------------------------
-    # 7) Footer Links
-    # --------------------------------------------------------------
-    # ——— Links ———
-    st.markdown("To report issues, please contact me via [🔗 LinkedIn](https://www.linkedin.com/in/istudywater/).")
-    st.markdown("To share your opinion of this webapp, please use the [feedback form](https://docs.google.com/forms/d/e/1FAIpQLSee-rxz_gHT8JACxRr62wHWgb8np3qBsZIGMP8GM9R3NnUv_g/viewform?usp=header)")
-    st.markdown("Vibe coded by Bryan B. Smith  "  
-        "[🔗 GitHub](https://github.com/istudywater/groundwater-analyzer) | "
-        "[🔗 LinkedIn](https://www.linkedin.com/in/istudywater/)")
