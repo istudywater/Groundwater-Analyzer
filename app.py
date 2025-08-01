@@ -52,5 +52,3 @@ elif page == 'Max Detection':
 elif page == 'Format Dataset':
     st.set_page_config(page_title="Format Dataset", layout="wide")
     format_dataset_app()
-#---
-#Vibe coding!
