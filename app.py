@@ -13,7 +13,7 @@ if 'page' not in st.session_state:
 # ——— Sidebar with buttons ———
 st.sidebar.title("🔎 GW Analyzer Navigation")
 # Use full-width buttons. When clicked, they set session_state.page.
-if st.sidebar.button("🏠 Home"):
+if st.sidebar.button("🏠 Home", use_container_width=True):
     st.session_state.page = 'Home'
 if st.sidebar.button("🧪 GWPS Analyzer", use_container_width=True):
     st.session_state.page = 'GWPS Analyzer'
