@@ -1,2 +1,2 @@
-# Groundwater Analyzer
- Compares laboratory data to established groundwater protection standards.
+# GW Analyzer v2
+An exanded form of the original app that includes a script for determining the maximum histoical detection per constituent
