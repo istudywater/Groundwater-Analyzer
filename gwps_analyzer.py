@@ -149,12 +149,14 @@ def gwps_analyzer_app():
             except Exception as e:
                 st.error(f"Error generating summary: {e}")
 
-st.markdown("---")
+    st.markdown("---")
 
-# --------------------------------------------------------------
-# 7) Footer Links
-# --------------------------------------------------------------
-st.markdown(
-    "👤 [GitHub](https://github.com/yourusername) | "
-    "[LinkedIn](https://www.linkedin.com/in/yourprofile/)"
-)
+    # --------------------------------------------------------------
+    # 7) Footer Links
+    # --------------------------------------------------------------
+    # ——— Links ———
+    st.markdown("To report issues, please contact me via [🔗 LinkedIn](https://www.linkedin.com/in/istudywater/).")
+    st.markdown("To share your opinion of this webapp, please use the [feedback form](https://docs.google.com/forms/d/e/1FAIpQLSee-rxz_gHT8JACxRr62wHWgb8np3qBsZIGMP8GM9R3NnUv_g/viewform?usp=header)")
+    st.markdown("Vibe coded by Bryan B. Smith  "  
+        "[🔗 GitHub](https://github.com/istudywater/groundwater-analyzer) | "
+        "[🔗 LinkedIn](https://www.linkedin.com/in/istudywater/)")
