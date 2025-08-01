@@ -15,11 +15,11 @@ st.sidebar.title("🔎 GW Analyzer Navigation")
 # Use full-width buttons. When clicked, they set session_state.page.
 if st.sidebar.button("🏠 Home"):
     st.session_state.page = 'Home'
-if st.sidebar.button("🧪 GWPS Analyzer"):
+if st.sidebar.button("🧪 GWPS Analyzer", use_container_width=True):
     st.session_state.page = 'GWPS Analyzer'
-if st.sidebar.button("⚖️ Max Detection"):
+if st.sidebar.button("⚖️ Max Detection", use_container_width=True):
     st.session_state.page = 'Max Detection'
-if st.sidebar.button("🗂 Format Dataset"):
+if st.sidebar.button("🗂 Format Dataset", use_container_width=True):
     st.session_state.page = 'Format Dataset'
 
 # ——— Main content ———
