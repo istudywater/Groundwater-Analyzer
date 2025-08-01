@@ -38,8 +38,6 @@ if page == 'Home':
 
     Get started by clicking one of the navigation buttons.  
     """)
-    st.markdown("---")
-    st.markdown("👤 [GitHub](https://github.com/yourusername) | [LinkedIn](https://www.linkedin.com/in/yourprofile/)")
 
 elif page == 'GWPS Analyzer':
     st.set_page_config(page_title="GWPS Analyzer", layout="wide")
