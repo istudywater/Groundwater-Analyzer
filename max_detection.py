@@ -1,68 +1,55 @@
-import streamlit as st
+
 import pandas as pd
-import numpy as np
-from io import BytesIO
-import base64
 
-def max_detection_app():
-    st.title("🔍 Max Detection App")
-    st.write("Upload a cleaned long-format groundwater monitoring dataset to calculate min/max detections and identify exceedances.")
+def analyze_max_detection(input_file, output_file):
+    df = pd.read_excel(input_file)
 
-    uploaded_file = st.file_uploader("Upload Long Format Dataset (.xlsx)", type=["xlsx"])
+    # Clean up: Remove trailing and leading whitespace and special characters
+    df.columns = df.columns.str.strip()
+    df['Result'] = df['Result'].astype(str).str.replace('<<', '<', regex=False).str.strip()
+    df['Result'] = df['Result'].replace('', 'NR')
 
-    if uploaded_file is not None:
-        try:
-            df = pd.read_excel(uploaded_file)
+    # Convert date to datetime and remove time from min date
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
-            # Standardize column names
-            df.columns = [col.strip() for col in df.columns]
-            required_cols = ['Well ID', 'Date', 'Constituent', 'Result']
-            if not all(col in df.columns for col in required_cols):
-                st.error(f"Dataset must contain the following columns: {required_cols}")
-                return
+    summary = []
 
-            # Clean the 'Result' column
-            df['Result'] = df['Result'].astype(str).str.strip()
-            df['Result'] = df['Result'].str.replace('<<', '<', regex=False)
-            df['Result'] = df['Result'].replace('', 'NR')
+    for analyte in df['Analyte'].unique():
+        analyte_df = df[df['Analyte'] == analyte].copy()
 
-            # Create new numeric result column
-            def parse_numeric(val):
-                try:
-                    if val in ["ND", "NR"]:
-                        return np.nan
-                    if isinstance(val, str) and val.startswith('<'):
-                        return float(val.replace('<', '').strip())
-                    return float(val)
-                except:
-                    return np.nan
+        # Filter valid results (exclude NR, ND, NS)
+        numeric_df = analyte_df[analyte_df['Result'].str.contains(r'^[<>]?\d', na=False)].copy()
+        numeric_df['Result_clean'] = numeric_df['Result'].str.replace('<', '', regex=False).astype(float)
 
-            df['Numeric Result'] = df['Result'].apply(parse_numeric)
+        if not numeric_df.empty:
+            max_row = numeric_df.loc[numeric_df['Result_clean'].idxmax()]
+            min_candidates = numeric_df[numeric_df['Result'].str.contains('<')]
+            if not min_candidates.empty:
+                min_row = min_candidates.loc[min_candidates['Result_clean'].idxmin()]
+                min_val, min_well, min_date = min_row['Result'], min_row['Client Sample ID'], min_row['Date'].date()
+            else:
+                min_val, min_well, min_date = 'No Data', 'Not Applicable', 'Not Applicable'
 
-            if df['Numeric Result'].dropna().empty:
-                st.error("No valid data rows found after cleaning. Please check the column mappings and data values.")
-                return
+            summary.append({
+                'Constituent': analyte,
+                'Max Value': max_row['Result'],
+                'Well ID of Max': max_row['Client Sample ID'],
+                'Date of Max': max_row['Date'].date(),
+                'Min Value': min_val,
+                'Well ID of Min': min_well,
+                'Date of Min': min_date
+            })
+        else:
+            summary.append({
+                'Constituent': analyte,
+                'Max Value': 'No Data',
+                'Well ID of Max': 'Not Applicable',
+                'Date of Max': 'Not Applicable',
+                'Min Value': 'No Data',
+                'Well ID of Min': 'Not Applicable',
+                'Date of Min': 'Not Applicable'
+            })
 
-            # Compute min/max for each constituent and well
-            grouped = df.groupby(['Constituent', 'Well ID'])['Numeric Result'].agg(['min', 'max']).reset_index()
-            grouped = grouped.rename(columns={'min': 'Min Detection', 'max': 'Max Detection'})
-
-            st.success("Summary statistics generated successfully.")
-            st.dataframe(grouped)
-
-            def to_excel(df):
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df.to_excel(writer, index=False, sheet_name='Summary')
-                processed_data = output.getvalue()
-                return processed_data
-
-            st.download_button(
-                label="📥 Download Summary Excel",
-                data=to_excel(grouped),
-                file_name='max_detection_summary.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-
-        except Exception as e:
-            st.error(f"Error processing file: {e}")
+    result_df = pd.DataFrame(summary)
+    result_df.to_excel(output_file, index=False)
+    return result_df
