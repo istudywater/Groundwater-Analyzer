@@ -1,55 +1,97 @@
-
+import streamlit as st
 import pandas as pd
+from io import BytesIO
 
-def analyze_max_detection(input_file, output_file):
-    df = pd.read_excel(input_file)
+def clean_result_column(df, result_col):
+    """Clean the 'Result' column."""
+    df[result_col] = df[result_col].astype(str).str.strip()
+    df[result_col] = df[result_col].str.replace("<<", "<", regex=False)
+    df[result_col] = df[result_col].replace("", "NR")
+    return df
 
-    # Clean up: Remove trailing and leading whitespace and special characters
-    df.columns = df.columns.str.strip()
-    df['Result'] = df['Result'].astype(str).str.replace('<<', '<', regex=False).str.strip()
-    df['Result'] = df['Result'].replace('', 'NR')
-
-    # Convert date to datetime and remove time from min date
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-
-    summary = []
-
-    for analyte in df['Analyte'].unique():
-        analyte_df = df[df['Analyte'] == analyte].copy()
-
-        # Filter valid results (exclude NR, ND, NS)
-        numeric_df = analyte_df[analyte_df['Result'].str.contains(r'^[<>]?\d', na=False)].copy()
-        numeric_df['Result_clean'] = numeric_df['Result'].str.replace('<', '', regex=False).astype(float)
-
-        if not numeric_df.empty:
-            max_row = numeric_df.loc[numeric_df['Result_clean'].idxmax()]
-            min_candidates = numeric_df[numeric_df['Result'].str.contains('<')]
-            if not min_candidates.empty:
-                min_row = min_candidates.loc[min_candidates['Result_clean'].idxmin()]
-                min_val, min_well, min_date = min_row['Result'], min_row['Client Sample ID'], min_row['Date'].date()
-            else:
-                min_val, min_well, min_date = 'No Data', 'Not Applicable', 'Not Applicable'
-
-            summary.append({
-                'Constituent': analyte,
-                'Max Value': max_row['Result'],
-                'Well ID of Max': max_row['Client Sample ID'],
-                'Date of Max': max_row['Date'].date(),
-                'Min Value': min_val,
-                'Well ID of Min': min_well,
-                'Date of Min': min_date
-            })
+def extract_numeric(value):
+    """Extract numeric value for comparison."""
+    try:
+        if pd.isna(value):
+            return None
+        value_str = str(value).strip()
+        if value_str.startswith("<"):
+            return float(value_str[1:])
+        elif value_str.upper() in ["ND", "NS", "NR", ""]:
+            return None
         else:
-            summary.append({
-                'Constituent': analyte,
-                'Max Value': 'No Data',
-                'Well ID of Max': 'Not Applicable',
-                'Date of Max': 'Not Applicable',
-                'Min Value': 'No Data',
-                'Well ID of Min': 'Not Applicable',
-                'Date of Min': 'Not Applicable'
-            })
+            return float(value_str)
+    except:
+        return None
 
-    result_df = pd.DataFrame(summary)
-    result_df.to_excel(output_file, index=False)
-    return result_df
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Summary")
+    output.seek(0)
+    return output
+
+def max_detection_app():
+    st.header("🧪 Max & Min Detection Summary")
+
+    uploaded_file = st.file_uploader("Upload formatted long-format Excel file", type=["xlsx"])
+
+    if uploaded_file:
+        try:
+            df = pd.read_excel(uploaded_file)
+
+            required_columns = {"Date", "Location", "Constituent", "Result"}
+            if not required_columns.issubset(df.columns):
+                st.error(f"Missing columns. Required: {required_columns}. Found: {set(df.columns)}")
+                return
+
+            df = clean_result_column(df, "Result")
+            summary_data = []
+
+            for constituent in df["Constituent"].unique():
+                subset = df[df["Constituent"] == constituent].copy()
+                subset["Numeric"] = subset["Result"].apply(extract_numeric)
+
+                # Max detection
+                max_row = subset.loc[subset["Numeric"].idxmax()] if subset["Numeric"].notna().any() else None
+                max_val = max_row["Result"] if max_row is not None else "No Data"
+                max_loc = max_row["Location"] if max_row is not None else "Not Applicable"
+                max_date = pd.to_datetime(max_row["Date"]).date() if max_row is not None else "Not Applicable"
+
+                # Min detection
+                min_df = subset[subset["Result"].astype(str).str.startswith("<")]
+                if not min_df.empty:
+                    min_df["ND_numeric"] = min_df["Result"].apply(lambda x: float(x[1:]))
+                    min_row = min_df.loc[min_df["ND_numeric"].idxmin()]
+                    min_val = min_row["Result"]
+                    min_loc = min_row["Location"]
+                    min_date = pd.to_datetime(min_row["Date"]).date()
+                else:
+                    min_val = "No Data"
+                    min_loc = "Not Applicable"
+                    min_date = "Not Applicable"
+
+                summary_data.append({
+                    "Constituent": constituent,
+                    "Max Value": max_val,
+                    "Well ID of Max": max_loc,
+                    "Date of Max": max_date,
+                    "Min Value": min_val,
+                    "Well ID of Min": min_loc,
+                    "Date of Min": min_date,
+                })
+
+            summary_df = pd.DataFrame(summary_data)
+
+            st.success("Summary generated successfully.")
+            st.dataframe(summary_df, use_container_width=True)
+
+            st.download_button(
+                label="📥 Download Summary Excel",
+                data=to_excel(summary_df),
+                file_name="max_detection_summary.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
+        except Exception as e:
+            st.error(f"Error generating summary: {e}")
