@@ -20,7 +20,8 @@ def extract_numeric(value):
         elif value_str.upper() in ["ND", "NS", "NR", ""]:
             return None
         else:
-            return float(value_str)
+            val = float(value_str)
+            return val if val > 0 else None  # Exclude zero
     except:
         return None
 
@@ -60,11 +61,11 @@ def max_detection_app():
                 max_loc = max_row[well_col] if max_row is not None else "Not Applicable"
                 max_date = pd.to_datetime(max_row[date_col]).date() if max_row is not None else "Not Applicable"
 
-                # Min detection logic (refined)
-                numeric_vals = subset["Numeric"].dropna()
-                if not numeric_vals.empty:
-                    min_val_numeric = numeric_vals.min()
-                    min_row = subset[subset["Numeric"] == min_val_numeric].iloc[0]
+                # Min detection
+                valid_min_df = subset[subset["Numeric"].notna() & (subset["Numeric"] > 0)]
+
+                if not valid_min_df.empty:
+                    min_row = valid_min_df.loc[valid_min_df["Numeric"].idxmin()]
                     min_val = min_row[result_col]
                     min_loc = min_row[well_col]
                     min_date = pd.to_datetime(min_row[date_col]).date()
