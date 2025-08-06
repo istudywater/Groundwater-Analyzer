@@ -60,11 +60,11 @@ def max_detection_app():
                 max_loc = max_row[well_col] if max_row is not None else "Not Applicable"
                 max_date = pd.to_datetime(max_row[date_col]).date() if max_row is not None else "Not Applicable"
 
-                # Min detection
-                min_df = subset[subset[result_col].astype(str).str.startswith("<")]
-                if not min_df.empty:
-                    min_df["ND_numeric"] = min_df[result_col].apply(lambda x: float(x[1:]))
-                    min_row = min_df.loc[min_df["ND_numeric"].idxmin()]
+                # Min detection logic (refined)
+                numeric_vals = subset["Numeric"].dropna()
+                if not numeric_vals.empty:
+                    min_val_numeric = numeric_vals.min()
+                    min_row = subset[subset["Numeric"] == min_val_numeric].iloc[0]
                     min_val = min_row[result_col]
                     min_loc = min_row[well_col]
                     min_date = pd.to_datetime(min_row[date_col]).date()
@@ -89,7 +89,7 @@ def max_detection_app():
             st.dataframe(summary_df, use_container_width=True)
 
             st.download_button(
-                label="📥 Download Summary Excel",
+                label="📅 Download Summary Excel",
                 data=to_excel(summary_df),
                 file_name="max_detection_summary.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
