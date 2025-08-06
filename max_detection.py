@@ -39,33 +39,35 @@ def max_detection_app():
     if uploaded_file:
         try:
             df = pd.read_excel(uploaded_file)
+            st.success("File uploaded successfully.")
 
-            required_columns = {"Date", "Location", "Constituent", "Result"}
-            if not required_columns.issubset(df.columns):
-                st.error(f"Missing columns. Required: {required_columns}. Found: {set(df.columns)}")
-                return
+            with st.expander("Step 1: Select Columns"):
+                date_col = st.selectbox("Select Date Column", df.columns)
+                well_col = st.selectbox("Select Well ID Column", df.columns)
+                constituent_col = st.selectbox("Select Constituent Column", df.columns)
+                result_col = st.selectbox("Select Result Column", df.columns)
 
-            df = clean_result_column(df, "Result")
+            df = clean_result_column(df, result_col)
             summary_data = []
 
-            for constituent in df["Constituent"].unique():
-                subset = df[df["Constituent"] == constituent].copy()
-                subset["Numeric"] = subset["Result"].apply(extract_numeric)
+            for constituent in df[constituent_col].unique():
+                subset = df[df[constituent_col] == constituent].copy()
+                subset["Numeric"] = subset[result_col].apply(extract_numeric)
 
                 # Max detection
                 max_row = subset.loc[subset["Numeric"].idxmax()] if subset["Numeric"].notna().any() else None
-                max_val = max_row["Result"] if max_row is not None else "No Data"
-                max_loc = max_row["Location"] if max_row is not None else "Not Applicable"
-                max_date = pd.to_datetime(max_row["Date"]).date() if max_row is not None else "Not Applicable"
+                max_val = max_row[result_col] if max_row is not None else "No Data"
+                max_loc = max_row[well_col] if max_row is not None else "Not Applicable"
+                max_date = pd.to_datetime(max_row[date_col]).date() if max_row is not None else "Not Applicable"
 
                 # Min detection
-                min_df = subset[subset["Result"].astype(str).str.startswith("<")]
+                min_df = subset[subset[result_col].astype(str).str.startswith("<")]
                 if not min_df.empty:
-                    min_df["ND_numeric"] = min_df["Result"].apply(lambda x: float(x[1:]))
+                    min_df["ND_numeric"] = min_df[result_col].apply(lambda x: float(x[1:]))
                     min_row = min_df.loc[min_df["ND_numeric"].idxmin()]
-                    min_val = min_row["Result"]
-                    min_loc = min_row["Location"]
-                    min_date = pd.to_datetime(min_row["Date"]).date()
+                    min_val = min_row[result_col]
+                    min_loc = min_row[well_col]
+                    min_date = pd.to_datetime(min_row[date_col]).date()
                 else:
                     min_val = "No Data"
                     min_loc = "Not Applicable"
