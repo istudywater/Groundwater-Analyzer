@@ -25,6 +25,13 @@ def extract_numeric(value):
     except:
         return None
 
+def is_non_detect(value):
+    """Check if the result is a non-detect."""
+    if pd.isna(value):
+        return True
+    value_str = str(value).strip().upper()
+    return value_str in ["ND", "NS", "NR", ""] or value_str.startswith("<")
+
 def to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -35,15 +42,11 @@ def to_excel(df):
 def max_detection_app():
     st.header("🧪 Max & Min Detection Summary")
 
-    uploaded_file = st.file_uploader("Upload formatted long-format Excel file", type=["xlsx", "xls", "csv"])
+    uploaded_file = st.file_uploader("Upload formatted long-format Excel file", type=["xlsx"])
 
     if uploaded_file:
         try:
-            if uploaded_file.name.endswith(".csv"):
-                df = pd.read_csv(uploaded_file)
-            else:
-                df = pd.read_excel(uploaded_file)
-
+            df = pd.read_excel(uploaded_file)
             st.success("File uploaded successfully.")
 
             with st.expander("Step 1: Select Columns"):
@@ -58,10 +61,9 @@ def max_detection_app():
             for constituent in df[constituent_col].unique():
                 subset = df[df[constituent_col] == constituent].copy()
                 subset["Numeric"] = subset[result_col].apply(extract_numeric)
+                subset["ND_Flag"] = subset[result_col].apply(is_non_detect)
 
-                # Check for 100% ND/NR/NS
-                all_nondetect = subset["Numeric"].isna().all()
-                nd_flag = "Yes" if all_nondetect else ""
+                all_nd = subset["ND_Flag"].all()
 
                 # Max detection
                 max_row = subset.loc[subset["Numeric"].idxmax()] if subset["Numeric"].notna().any() else None
@@ -69,7 +71,7 @@ def max_detection_app():
                 max_loc = max_row[well_col] if max_row is not None else "Not Applicable"
                 max_date = pd.to_datetime(max_row[date_col]).date() if max_row is not None else "Not Applicable"
 
-                # Min detection
+                # Min detection (smallest numeric or <value)
                 valid_min_df = subset[subset["Numeric"].notna() & (subset["Numeric"] > 0)]
                 if not valid_min_df.empty:
                     min_row = valid_min_df.loc[valid_min_df["Numeric"].idxmin()]
@@ -89,7 +91,7 @@ def max_detection_app():
                     "Min Value": min_val,
                     "Well ID of Min": min_loc,
                     "Date of Min": min_date,
-                    "100% NDs": nd_flag
+                    "100% NDs": "Yes" if all_nd else ""
                 })
 
             summary_df = pd.DataFrame(summary_data)
