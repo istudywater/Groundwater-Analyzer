@@ -35,11 +35,15 @@ def to_excel(df):
 def max_detection_app():
     st.header("🧪 Max & Min Detection Summary")
 
-    uploaded_file = st.file_uploader("Upload formatted long-format Excel file", type=["xlsx"])
+    uploaded_file = st.file_uploader("Upload formatted long-format Excel file", type=["xlsx", "xls", "csv"])
 
     if uploaded_file:
         try:
-            df = pd.read_excel(uploaded_file)
+            if uploaded_file.name.endswith(".csv"):
+                df = pd.read_csv(uploaded_file)
+            else:
+                df = pd.read_excel(uploaded_file)
+
             st.success("File uploaded successfully.")
 
             with st.expander("Step 1: Select Columns"):
@@ -55,6 +59,10 @@ def max_detection_app():
                 subset = df[df[constituent_col] == constituent].copy()
                 subset["Numeric"] = subset[result_col].apply(extract_numeric)
 
+                # Check for 100% ND/NR/NS
+                all_nondetect = subset["Numeric"].isna().all()
+                nd_flag = "Yes" if all_nondetect else ""
+
                 # Max detection
                 max_row = subset.loc[subset["Numeric"].idxmax()] if subset["Numeric"].notna().any() else None
                 max_val = max_row[result_col] if max_row is not None else "No Data"
@@ -63,7 +71,6 @@ def max_detection_app():
 
                 # Min detection
                 valid_min_df = subset[subset["Numeric"].notna() & (subset["Numeric"] > 0)]
-
                 if not valid_min_df.empty:
                     min_row = valid_min_df.loc[valid_min_df["Numeric"].idxmin()]
                     min_val = min_row[result_col]
@@ -82,6 +89,7 @@ def max_detection_app():
                     "Min Value": min_val,
                     "Well ID of Min": min_loc,
                     "Date of Min": min_date,
+                    "100% NDs": nd_flag
                 })
 
             summary_df = pd.DataFrame(summary_data)
