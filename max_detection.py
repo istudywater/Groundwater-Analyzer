@@ -15,6 +15,10 @@ def extract_numeric(value):
     except:
         return None
 
+def is_non_detect(value):
+    value_str = str(value).strip().upper()
+    return value_str == "ND" or value_str.startswith("<")
+
 def clean_result_column(df, result_col):
     df[result_col] = df[result_col].astype(str).str.strip()
     df[result_col] = df[result_col].str.replace("<<", "<", regex=False)
@@ -22,7 +26,7 @@ def clean_result_column(df, result_col):
     return df
 
 def get_lowest_non_detect(subset, result_col, well_col, date_col):
-    nd_values = subset[result_col].dropna().astype(str).str.strip()
+    nd_values = subset[result_col].astype(str).str.strip()
     nd_values = nd_values[nd_values.str.startswith("<")]
 
     if not nd_values.empty:
@@ -44,12 +48,17 @@ def generate_max_min_summary(df, date_col, well_col, constituent_col, result_col
     for constituent in df[constituent_col].unique():
         subset = df[df[constituent_col] == constituent].copy()
         subset["Numeric"] = subset[result_col].apply(extract_numeric)
-        all_nd = subset["Numeric"].isna().all()
+        subset["Is_ND"] = subset[result_col].apply(is_non_detect)
+
+        # ✅ CORRECT 100% ND LOGIC
+        all_nd = subset["Is_ND"].all()
 
         if all_nd:
-            min_val, min_loc, min_date = get_lowest_non_detect(subset, result_col, well_col, date_col)
-            if min_val != "BDL":
-                nd_constituents.append(constituent)
+            min_val, min_loc, min_date = get_lowest_non_detect(
+                subset, result_col, well_col, date_col
+            )
+            nd_constituents.append(constituent)
+
             summary_data.append({
                 "Constituent": constituent,
                 "Max Value": "BDL",
@@ -62,19 +71,24 @@ def generate_max_min_summary(df, date_col, well_col, constituent_col, result_col
             })
             continue
 
+        # ✅ MAX (true detection only)
         max_row = subset.loc[subset["Numeric"].idxmax()]
         max_val = max_row[result_col]
         max_loc = max_row[well_col]
         max_date = pd.to_datetime(max_row[date_col]).date()
 
+        # ✅ MIN (true numeric min or lowest < value)
         valid_min_df = subset[subset["Numeric"].notna() & (subset["Numeric"] > 0)]
+
         if not valid_min_df.empty:
             min_row = valid_min_df.loc[valid_min_df["Numeric"].idxmin()]
             min_val = min_row[result_col]
             min_loc = min_row[well_col]
             min_date = pd.to_datetime(min_row[date_col]).date()
         else:
-            min_val, min_loc, min_date = get_lowest_non_detect(subset, result_col, well_col, date_col)
+            min_val, min_loc, min_date = get_lowest_non_detect(
+                subset, result_col, well_col, date_col
+            )
 
         summary_data.append({
             "Constituent": constituent,
@@ -84,16 +98,17 @@ def generate_max_min_summary(df, date_col, well_col, constituent_col, result_col
             "Min Value": min_val,
             "Well ID of Min": min_loc,
             "Date of Min": min_date,
-            "100% NDs": "Yes" if all_nd else ""
+            "100% NDs": ""
         })
 
     summary_df = pd.DataFrame(summary_data)
 
-    # Generate summary statement
-    nd_summary = "No constituents resulted in 100% non-detects."
+    # ✅ 100% ND SUMMARY STATEMENT
     if nd_constituents:
         nd_list = ", ".join(nd_constituents)
         nd_summary = f"The following constituents resulted in 100% non-detect values: {nd_list}."
+    else:
+        nd_summary = "No constituents resulted in 100% non-detects."
 
     return summary_df, nd_summary
 
@@ -115,6 +130,7 @@ def max_detection_app():
                 df = pd.read_csv(uploaded_file)
             else:
                 df = pd.read_excel(uploaded_file)
+
             st.success("File uploaded successfully.")
 
             with st.expander("Step 1: Select Columns"):
