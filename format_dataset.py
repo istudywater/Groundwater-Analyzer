@@ -12,7 +12,10 @@ def to_excel(df):
 def format_dataset_app():
     st.header("📊 Format Raw Groundwater Dataset")
 
-    uploaded_file = st.file_uploader("Upload raw Excel or CSV file", type=["xlsx", "xls", "csv"])
+    uploaded_file = st.file_uploader(
+        "Upload raw Excel or CSV file",
+        type=["xlsx", "xls", "csv"]
+    )
 
     if uploaded_file:
         try:
@@ -24,26 +27,31 @@ def format_dataset_app():
                 df = pd.read_excel(uploaded_file)
 
             df.columns = df.columns.str.strip()  # Clean column headers
-
             st.success("File uploaded successfully.")
 
             st.subheader("Step 1: Assign Column Roles")
+
             well_col = st.selectbox("Select Well ID Column", df.columns)
             date_col = st.selectbox("Select Date Column", df.columns)
 
             st.markdown("Select the columns that contain constituent data:")
             constituent_cols = st.multiselect(
-                "Select Constituent Columns", 
+                "Select Constituent Columns",
                 [col for col in df.columns if col not in [well_col, date_col]]
             )
 
             if well_col and date_col and constituent_cols:
+
+                # ✅ SAFE melt using temporary column name
                 long_df = df.melt(
                     id_vars=[well_col, date_col],
                     value_vars=constituent_cols,
                     var_name="Constituent",
-                    value_name="Result"
+                    value_name="Result_Value"   # ✅ temporary safe name
                 )
+
+                # ✅ Rename back to Result AFTER melt
+                long_df = long_df.rename(columns={"Result_Value": "Result"})
 
                 st.success("Dataset formatted successfully!")
                 st.dataframe(long_df.head(), use_container_width=True)
@@ -54,6 +62,7 @@ def format_dataset_app():
                     file_name="long_format_dataset.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 )
+
             else:
                 st.info("Please select all column roles to proceed.")
 
