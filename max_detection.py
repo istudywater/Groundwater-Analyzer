@@ -62,8 +62,8 @@ def generate_max_min_summary(df, date_col, well_col, constituent_col, result_col
             summary_data.append({
                 "Constituent": constituent,
                 "Max Value": "BDL",
-                "Well ID of Max": "Not Applicable",
-                "Date of Max": "Not Applicable",
+                "Well ID of Max": "N/A",
+                "Date of Max": "N/A",
                 "Min Value": min_val,
                 "Well ID of Min": min_loc,
                 "Date of Min": min_date,
