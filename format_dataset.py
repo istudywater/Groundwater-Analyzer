@@ -9,50 +9,62 @@ def to_excel(df):
     output.seek(0)
     return output
 
-def format_dataset_app():
-    st.header("📊 Format Raw Groundwater Dataset")
+def to_matrix_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=True, sheet_name="Matrix")
+    output.seek(0)
+    return output
 
-    uploaded_file = st.file_uploader(
-        "Upload raw Excel or CSV file",
-        type=["xlsx", "xls", "csv"]
-    )
+def format_dataset_app():
+    st.header("📊 Format Dataset to Long & Matrix")
+
+    uploaded_file = st.file_uploader("Upload raw lab dataset (Excel or CSV)", type=["xlsx", "xls", "csv"])
 
     if uploaded_file:
         try:
-            file_name = uploaded_file.name.lower()
-
-            if file_name.endswith(".csv"):
+            # Read file depending on type
+            if uploaded_file.name.endswith(".csv"):
                 df = pd.read_csv(uploaded_file)
             else:
                 df = pd.read_excel(uploaded_file)
 
-            df.columns = df.columns.astype(str).str.strip()
-
             st.success("File uploaded successfully.")
-
-            st.subheader("Step 1: Assign Column Roles")
+            st.subheader("Step 1: Select Column Headers")
 
             well_col = st.selectbox("Select Well ID Column", df.columns)
             date_col = st.selectbox("Select Date Column", df.columns)
-            analyte_col = st.selectbox("Select Analyte Name Column", df.columns)
-            result_col = st.selectbox("Select Result Value Column", df.columns)
-
-            # 🛑 Ensure user selections are not the same
-            if len({well_col, date_col, analyte_col, result_col}) < 4:
-                st.warning("Please select four unique columns for Well ID, Date, Analyte, and Result.")
-                return
+            analyte_col = st.selectbox("Select Constituent/Analyte Column", df.columns)
+            result_col = st.selectbox("Select Result Column", df.columns)
 
             long_df = df[[well_col, date_col, analyte_col, result_col]].copy()
             long_df.columns = ["Well ID", "Date", "Constituent", "Result"]
 
-            st.success("✅ Dataset formatted successfully!")
-            st.markdown("### Preview of Long-Format Output:")
-            st.dataframe(long_df.head(50), use_container_width=True)
+            st.subheader("Step 2: Preview Long-Format Table")
+            st.dataframe(long_df, use_container_width=True)
 
             st.download_button(
                 label="📥 Download Long Format Excel",
                 data=to_excel(long_df),
                 file_name="long_format_dataset.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
+            # Generate matrix format (pivot table)
+            st.subheader("Step 3: Preview Matrix Format Table")
+            matrix_df = long_df.pivot_table(
+                index=["Well ID", "Date"],
+                columns="Constituent",
+                values="Result",
+                aggfunc="first"
+            ).reset_index()
+
+            st.dataframe(matrix_df, use_container_width=True)
+
+            st.download_button(
+                label="📥 Download Matrix Format Excel",
+                data=to_matrix_excel(matrix_df),
+                file_name="matrix_format_dataset.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
 
