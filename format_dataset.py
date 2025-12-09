@@ -40,7 +40,7 @@ def format_dataset_app():
             long_df = df[[well_col, date_col, analyte_col, result_col]].copy()
             long_df.columns = ["Well ID", "Date", "Constituent", "Result"]
 
-            st.subheader("Step 2: Preview Long-Format Table")
+            st.subheader("Step 2: Preview and Download Long-Format Table")
             st.dataframe(long_df, use_container_width=True)
 
             st.download_button(
@@ -51,7 +51,7 @@ def format_dataset_app():
             )
 
             # Generate matrix format (pivot table)
-            st.subheader("Step 3: Preview Matrix Format Table")
+            st.subheader("Step 3: Preview and Download Matrix Format Table")
             matrix_df = long_df.pivot_table(
                 index=["Well ID", "Date"],
                 columns="Constituent",
