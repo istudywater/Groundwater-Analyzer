@@ -97,6 +97,13 @@ def max_detection_app():
             st.success("Summary generated successfully.")
             st.dataframe(summary_df, use_container_width=True)
 
+            # After the summary_df is created and displayed
+            nd_constituents = summary_df[summary_df["100% NDs"] == "Yes"]["Constituent"].tolist()
+
+            if nd_constituents:
+                nd_summary = ", ".join(nd_constituents)
+                st.markdown(f"**The following constituents resulted in 100% non-detect values:** {nd_summary}")
+
             st.download_button(
                 label="📅 Download Summary Excel",
                 data=to_excel(summary_df),
