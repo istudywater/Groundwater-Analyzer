@@ -34,41 +34,16 @@ def format_dataset_app():
 
             well_col = st.selectbox("Select Well ID Column", df.columns)
             date_col = st.selectbox("Select Date Column", df.columns)
+            analyte_col = st.selectbox("Select Analyte Name Column", df.columns)
+            result_col = st.selectbox("Select Result Value Column", df.columns)
 
-            # 🚨 BLOCK columns that should NEVER be analytes
-            blocked_cols = {
-                well_col.lower(),
-                date_col.lower(),
-                "result",
-                "concentration",
-                "value",
-                "analyte",
-                "constituent"
-            }
-
-            valid_analyte_cols = [
-                col for col in df.columns
-                if col.lower() not in blocked_cols
-            ]
-
-            st.markdown("✅ Select ONLY the analyte concentration columns:")
-            constituent_cols = st.multiselect(
-                "Analyte Columns",
-                valid_analyte_cols
-            )
-
-            # 🛑 Do nothing until all selections made
-            if not well_col or not date_col or not constituent_cols:
-                st.info("Please select Well ID, Date, and at least one analyte column to continue.")
+            # 🛑 Ensure user selections are not the same
+            if len({well_col, date_col, analyte_col, result_col}) < 4:
+                st.warning("Please select four unique columns for Well ID, Date, Analyte, and Result.")
                 return
 
-            # ✅ Safe melt (no Result conflict)
-            long_df = df.melt(
-                id_vars=[well_col, date_col],
-                value_vars=constituent_cols,
-                var_name="Constituent",
-                value_name="Result"
-            )
+            long_df = df[[well_col, date_col, analyte_col, result_col]].copy()
+            long_df.columns = ["Well ID", "Date", "Constituent", "Result"]
 
             st.success("✅ Dataset formatted successfully!")
             st.markdown("### Preview of Long-Format Output:")
