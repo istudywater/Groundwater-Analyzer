@@ -119,6 +119,10 @@ def analyze_max_min_nd(
             "Date of Min": pd.to_datetime(min_row[date_col]).date(),
             "100% NDs": "",
         })
+        if nd_constituents:
+            nd_statement = "🧪 Constituents with 100% ND results:\n" + "\n".join(f"- {c}" for c in nd_constituents)
+        else:
+            nd_statement = "✅ No constituents were 100% ND."
 
     summary_df = pd.DataFrame(results)
 
