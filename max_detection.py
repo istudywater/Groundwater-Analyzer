@@ -1,4 +1,9 @@
+import streamlit as st
 import pandas as pd
+from io import BytesIO
+from core import load_data
+import analyze_max_min_nd
+
 
 def load_data(file_path):
     """Load Excel file and return DataFrame."""
@@ -92,11 +97,7 @@ if __name__ == "__main__":
         print("\n✅ No constituents were 100% ND.")
 
 def max_detection_app():
-    import streamlit as st
-    import pandas as pd
-    from io import BytesIO
-    from core import load_data, analyze_max_min_nd  # make sure these are properly defined in core.py
-
+ 
     st.title("📈 Max Detection Summary Tool")
 
     uploaded_file = st.file_uploader("📥 Upload lab data file", type=["xlsx"])
