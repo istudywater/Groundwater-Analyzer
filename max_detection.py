@@ -48,15 +48,15 @@ def max_detection_app():
                 else:
                     nd_statement = "✅ No constituents resulted in 100% non-detect values."
 
-                st.markdown("### ND Summary")
-                st.markdown(nd_statement)
-                
-                st.download_button(
+                 st.download_button(
                     "📥 Download as CSV",
                     summary_df.to_csv(index=False),
                     file_name="max_detection_summary.csv",
                     mime="text/csv"
                 )
+
+               st.markdown("### ND Summary")
+                st.markdown(nd_statement)
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
