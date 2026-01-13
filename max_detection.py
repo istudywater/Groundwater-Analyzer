@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from core import load_data
-import analyze_max_min_nd
+from analyze_max_min_nd import analyze_max_min_nd 
 
 
 def load_data(file_path):
