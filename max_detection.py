@@ -93,27 +93,54 @@ if __name__ == "__main__":
 
 def max_detection_app():
     import streamlit as st
-    st.title("Max Detection Tool")
+    import pandas as pd
+    from io import BytesIO
+    from core import load_data, analyze_max_min_nd  # make sure these are properly defined in core.py
 
-    uploaded_file = st.file_uploader("Upload lab data file", type=["xlsx"])
-    
+    st.title("📈 Max Detection Summary Tool")
+
+    uploaded_file = st.file_uploader("📥 Upload lab data file", type=["xlsx"])
+
     if uploaded_file:
         try:
             df = load_data(uploaded_file)
-            result_df, nd_only = analyze_max_min_nd(df)
+            st.success("✅ File loaded successfully.")
 
-            st.success("File processed successfully.")
-            st.dataframe(result_df)
+            st.markdown("### 🔧 Select Columns")
+            col1, col2 = st.columns(2)
+            with col1:
+                well_col = st.selectbox("Well ID Column", df.columns, index=0)
+                analyte_col = st.selectbox("Analyte Column", df.columns, index=1)
+            with col2:
+                result_col = st.selectbox("Result Column", df.columns, index=2)
+                date_col = st.selectbox("Date Column", df.columns, index=3)
 
-            if nd_only:
-                st.subheader("Constituents with 100% ND Results:")
-                for c in nd_only:
-                    st.markdown(f"- {c}")
-            else:
-                st.info("No constituents were 100% ND.")
+            if st.button("🚀 Run Max/Min Detection Summary"):
+                summary_df, nd_only = analyze_max_min_nd(
+                    df,
+                    well_col=well_col,
+                    analyte_col=analyte_col,
+                    result_col=result_col,
+                    date_col=date_col
+                )
 
-            # Option to download
-            st.download_button("Download Results", result_df.to_csv(index=False), file_name="max_detection_summary.csv", mime="text/csv")
+                st.subheader("📊 Summary Table")
+                st.dataframe(summary_df, use_container_width=True)
+
+                if nd_only:
+                    st.markdown("### ❗ Constituents with 100% ND Results")
+                    for item in nd_only:
+                        st.markdown(f"- {item}")
+                else:
+                    st.info("No constituents were 100% ND.")
+
+                # Download button
+                st.download_button(
+                    "📥 Download as CSV",
+                    summary_df.to_csv(index=False),
+                    file_name="max_detection_summary.csv",
+                    mime="text/csv"
+                )
 
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"❌ Error: {e}")
