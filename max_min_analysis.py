@@ -6,6 +6,9 @@ def analyze_max_min_nd(df, well_col, analyte_col, result_col, date_col):
     # Strip and uppercase the result column for consistent parsing
     df[result_col] = df[result_col].astype(str).str.strip()
     df['ND Flag'] = df[result_col].str.upper() == 'ND'
+    
+    # Remove entries where the well ID is blank (associated with lab QC results)
+    df = df[df[well_col].notna() & (df[well_col].astype(str).str.strip() != "")]
 
     # Remove rows where Result is missing/blank
     clean_df = df[df[result_col].notna() & (df[result_col].str.strip() != "")]
