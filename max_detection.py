@@ -28,13 +28,13 @@ def max_detection_app():
                 date_col = st.selectbox("Date Column", df.columns)
 
             if st.button("🚀 Run Max/Min Detection Summary"):
-                summary_df, nd_only, nd_statement = analyze_max_min_nd(
+                summary_df, nd_only = analyze_max_min_nd(
                     df,
                     well_col=well_col,
                     analyte_col=analyte_col,
                     result_col=result_col,
                     date_col=date_col
-                )
+)
 
                 st.subheader("📊 Summary Table")
                 st.dataframe(summary_df, use_container_width=True)
