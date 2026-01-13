@@ -5,8 +5,8 @@ from io import BytesIO
 from core import load_data
 from max_min_analysis import analyze_max_min_nd
 
-def max_detection_app():
 
+def max_detection_app():
     st.title("📈 Max Detection Summary Tool")
 
     uploaded_file = st.file_uploader("📥 Upload lab data file", type=["xlsx"])
@@ -34,12 +34,12 @@ def max_detection_app():
                     analyte_col=analyte_col,
                     result_col=result_col,
                     date_col=date_col
-)
+                )
 
                 st.subheader("📊 Summary Table")
                 st.dataframe(summary_df, use_container_width=True)
 
-                # ✅ DEFINE nd_statement HERE (ALWAYS)
+                # ✅ ND Summary block
                 if nd_only:
                     nd_statement = (
                         "🧪 **The following constituents resulted in 100% non-detect values:**\n\n"
@@ -48,15 +48,16 @@ def max_detection_app():
                 else:
                     nd_statement = "✅ No constituents resulted in 100% non-detect values."
 
-                 st.download_button(
+                st.markdown("### ND Summary")
+                st.markdown(nd_statement)
+
+                # ✅ Download button
+                st.download_button(
                     "📥 Download as CSV",
                     summary_df.to_csv(index=False),
                     file_name="max_detection_summary.csv",
                     mime="text/csv"
                 )
-
-               st.markdown("### ND Summary")
-                st.markdown(nd_statement)
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
