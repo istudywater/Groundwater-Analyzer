@@ -1,97 +1,92 @@
-import streamlit as st
 import pandas as pd
-import io
 
-st.set_page_config(page_title="Max Detection Summary", layout="wide")
+def load_data(file_path):
+    """Load Excel file and return DataFrame."""
+    df = pd.read_excel(file_path, dtype=str)
+    df.columns = df.columns.str.strip()
+    return df
 
-def max_detection_app():
-    st.title("📊 Max Detection Summary")
+def analyze_max_min_nd(df):
+    df.columns = df.columns.str.strip()
 
-    # Upload raw lab data
-    uploaded_file = st.file_uploader("Upload your formatted lab dataset (.xlsx)", type=["xlsx"])
-    
-    if uploaded_file:
+    # Ensure columns exist
+    required_cols = ['Constituent', 'Result', 'Client Sample ID', 'Date']
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column: {col}")
+
+    # Normalize result column
+    df['Result'] = df['Result'].astype(str).str.strip()
+    df['ND Flag'] = df['Result'].str.upper() == 'ND'
+
+    # Try to extract numeric values where possible
+    def try_float(val):
         try:
-            df = pd.read_excel(uploaded_file)
+            return float(val)
+        except ValueError:
+            return None
 
-            # Select required columns
-            st.markdown("### 🔧 Column Selection")
-            well_col = st.selectbox("Select Well ID Column", df.columns, index=0)
-            date_col = st.selectbox("Select Sample Date Column", df.columns, index=1)
-            analyte_col = st.selectbox("Select Constituent/Analyte Column", df.columns, index=2)
-            result_col = st.selectbox("Select Result Column", df.columns, index=3)
+    df['Result Value'] = df['Result'].apply(try_float)
 
-            if st.button("▶️ Generate Max Detection Summary"):
-                # Clean up and flag ND
-                df['Analyte'] = df[analyte_col].astype(str).str.strip()
-                df['Well'] = df[well_col].astype(str).str.strip()
-                df['ResultRaw'] = df[result_col].astype(str).str.strip()
+    results = []
+    nd_constituents = []
 
-                # Flag non-detects: "ND" or values starting with "<"
-                df['Is_ND'] = df['ResultRaw'].str.upper().eq("ND") | df['ResultRaw'].str.startswith("<")
+    for constituent, group in df.groupby("Constituent"):
+        group = group.copy()
 
-                # Effective value: for ND values, use the numeric portion after "<" or NaN; else float(ResultRaw)
-                def extract_effective(val, is_nd):
-                    try:
-                        if is_nd:
-                            if val.startswith("<"):
-                                return float(val.replace("<", "").strip())
-                            return float("nan")  # For plain ND
-                        else:
-                            return float(val)
-                    except:
-                        return float("nan")
+        if group['ND Flag'].all():
+            # All values are ND
+            nd_constituents.append(constituent)
+            results.append({
+                "Constituent": constituent,
+                "Max Value": "",
+                "Well ID of Max": "",
+                "Date of Max": "",
+                "Min Value": "",
+                "Well ID of Min": "",
+                "Date of Min": "",
+                "100% NDs": "Yes"
+            })
+            continue
 
-                df['Effective'] = df.apply(lambda row: extract_effective(row['ResultRaw'], row['Is_ND']), axis=1)
+        # Filter out rows that aren't numeric
+        numeric_group = group[group["ND Flag"] == False].dropna(subset=["Result Value"])
+        if numeric_group.empty:
+            continue
 
-                # Aggregate
-                summary = df.groupby('Analyte').agg(
-                    Min_Effective=('Effective', 'min'),
-                    Max_Effective=('Effective', 'max'),
-                    Count=('Effective', 'count'),
-                    ND_Count=('Is_ND', 'sum')
-                ).reset_index()
+        max_row = numeric_group.loc[numeric_group["Result Value"].idxmax()]
+        min_row = numeric_group.loc[numeric_group["Result Value"].idxmin()]
 
-                # Add ND flag and formatted columns
-                summary["100% NDs"] = summary["Count"] == summary["ND_Count"]
-                summary["100% NDs"] = summary["100% NDs"].apply(lambda x: "Yes" if x else "")
-                summary["Min"] = summary.apply(
-                    lambda row: f"<{row.Min_Effective:.2f}" if row["100% NDs"] == "Yes" or row.Min_Effective == row.Max_Effective else f"{row.Min_Effective:.2f}", axis=1
-                )
-                summary["Max"] = summary.apply(
-                    lambda row: "BDL" if row["100% NDs"] == "Yes" else f"{row.Max_Effective:.2f}", axis=1
-                )
+        results.append({
+            "Constituent": constituent,
+            "Max Value": max_row["Result"],
+            "Well ID of Max": max_row["Client Sample ID"],
+            "Date of Max": max_row["Date"],
+            "Min Value": min_row["Result"],
+            "Well ID of Min": min_row["Client Sample ID"],
+            "Date of Min": min_row["Date"],
+            "100% NDs": ""
+        })
 
-                # Reorder and clean
-                summary_df = summary[["Analyte", "Min", "Max", "100% NDs"]]
+    result_df = pd.DataFrame(results)
+    return result_df, nd_constituents
 
-                st.success("✅ Summary generated below:")
-                st.dataframe(summary_df, use_container_width=True)
-
-                # Output statement
-                all_nd = summary_df[summary_df["100% NDs"] == "Yes"]["Analyte"].tolist()
-                if all_nd:
-                    nd_statement = "The following constituents resulted in 100% non-detect values: " + ", ".join(all_nd) + "."
-                    st.markdown(f"📌 **{nd_statement}**")
-                else:
-                    st.markdown("📌 **All constituents had at least one detected value.**")
-
-                # Download button
-                excel_buffer = io.BytesIO()
-                with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
-                    summary_df.to_excel(writer, index=False, sheet_name="Max Summary")
-                excel_buffer.seek(0)
-
-                st.download_button(
-                    label="📥 Download Summary as Excel",
-                    data=excel_buffer,
-                    file_name="Max_Summary.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-
-# Run the app if executed as main
 if __name__ == "__main__":
-    max_detection_app()
+    # Replace this with your file path
+    input_file = "2025-2H WNB Data2.xlsx"
+
+    df = load_data(input_file)
+    summary_df, nd_only = analyze_max_min_nd(df)
+
+    # Save to Excel
+    output_file = "Max_Detection_Summary.xlsx"
+    summary_df.to_excel(output_file, index=False)
+    print(f"✅ Summary saved to {output_file}")
+
+    # Print list of constituents that were 100% ND
+    if nd_only:
+        print("\n🧪 Constituents with 100% ND results:")
+        for c in nd_only:
+            print(f" - {c}")
+    else:
+        print("\n✅ No constituents were 100% ND.")
