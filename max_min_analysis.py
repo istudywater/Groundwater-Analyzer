@@ -1,6 +1,13 @@
 import pandas as pd
 import numpy as np
 
+
+# ----------------------
+# TESTING
+
+print("✅ Using updated analyze_max_min_nd with well_col")
+
+# -----------------------
 def analyze_max_min_nd(
     df: pd.DataFrame,
     well_col: str,
