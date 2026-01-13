@@ -3,35 +3,24 @@ import pandas as pd
 def analyze_max_min_nd(df, well_col, analyte_col, result_col, date_col):
     df.columns = df.columns.str.strip()
 
-    # Drop blank rows in required columns
-    df = df.dropna(subset=[analyte_col, result_col])
-
-    # Normalize result column
+    # Strip and uppercase the result column for consistent parsing
     df[result_col] = df[result_col].astype(str).str.strip()
     df['ND Flag'] = df[result_col].str.upper() == 'ND'
 
-    # Convert results to float where possible
-    def try_float(val):
-        try:
-            return float(val)
-        except ValueError:
-            return None
-
-    df['Result Value'] = df[result_col].apply(try_float)
+    # Remove rows where Result is missing/blank
+    clean_df = df[df[result_col].notna() & (df[result_col].str.strip() != "")]
 
     results = []
     nd_constituents = []
 
-    for constituent, group in df.groupby(analyte_col):
+    for constituent, group in clean_df.groupby(analyte_col):
         group = group.copy()
 
-        # Drop rows with empty results
-        group = group[~group[result_col].isna()]
-        group = group[group[result_col] != ""]
-
+        # Skip if the group has no valid rows
         if group.empty:
             continue
 
+        # Check if all are ND
         if group['ND Flag'].all():
             nd_constituents.append(constituent)
             results.append({
@@ -46,7 +35,16 @@ def analyze_max_min_nd(df, well_col, analyte_col, result_col, date_col):
             })
             continue
 
-        numeric_group = group[group['ND Flag'] == False].dropna(subset=["Result Value"])
+        # Convert values to numeric if not ND
+        def try_float(val):
+            try:
+                return float(val)
+            except:
+                return None
+
+        group["Result Value"] = group[~group['ND Flag']][result_col].apply(try_float)
+
+        numeric_group = group.dropna(subset=["Result Value"])
         if numeric_group.empty:
             continue
 
