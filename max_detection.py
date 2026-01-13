@@ -39,8 +39,18 @@ def max_detection_app():
                 st.subheader("📊 Summary Table")
                 st.dataframe(summary_df, use_container_width=True)
 
-                st.markdown(f"**{nd_statement}**")
+                # ✅ DEFINE nd_statement HERE (ALWAYS)
+                if nd_only:
+                    nd_statement = (
+                        "🧪 **The following constituents resulted in 100% non-detect values:**\n\n"
+                        + ", ".join(nd_only)
+                    )
+                else:
+                    nd_statement = "✅ No constituents resulted in 100% non-detect values."
 
+                st.markdown("### ND Summary")
+                st.markdown(nd_statement)
+                
                 st.download_button(
                     "📥 Download as CSV",
                     summary_df.to_csv(index=False),
