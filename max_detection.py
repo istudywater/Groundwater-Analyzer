@@ -90,3 +90,30 @@ if __name__ == "__main__":
             print(f" - {c}")
     else:
         print("\n✅ No constituents were 100% ND.")
+
+def max_detection_app():
+    import streamlit as st
+    st.title("Max Detection Tool")
+
+    uploaded_file = st.file_uploader("Upload lab data file", type=["xlsx"])
+    
+    if uploaded_file:
+        try:
+            df = load_data(uploaded_file)
+            result_df, nd_only = analyze_max_min_nd(df)
+
+            st.success("File processed successfully.")
+            st.dataframe(result_df)
+
+            if nd_only:
+                st.subheader("Constituents with 100% ND Results:")
+                for c in nd_only:
+                    st.markdown(f"- {c}")
+            else:
+                st.info("No constituents were 100% ND.")
+
+            # Option to download
+            st.download_button("Download Results", result_df.to_csv(index=False), file_name="max_detection_summary.csv", mime="text/csv")
+
+        except Exception as e:
+            st.error(f"Error: {e}")
