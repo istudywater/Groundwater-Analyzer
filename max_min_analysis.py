@@ -1,35 +1,43 @@
 import pandas as pd
 
-def analyze_max_min_nd(df, well_col, analyte_col, result_col, date_col):
-    df = df.copy()
+def analyze_max_min_nd(
+    df: pd.DataFrame,
+    well_col: str,
+    analyte_col: str,
+    result_col: str,
+    date_col: str
+):
+    """Analyze max, min, and 100% ND constituents."""
+
+    # Clean headers and values
     df.columns = df.columns.str.strip()
-
-    # Normalize and strip string values
-    df[well_col] = df[well_col].astype(str).str.strip()
     df[analyte_col] = df[analyte_col].astype(str).str.strip()
+    df[well_col] = df[well_col].astype(str).str.strip()
     df[result_col] = df[result_col].astype(str).str.strip()
-    df[date_col] = df[date_col].astype(str).str.strip()
+    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
 
-    # Flag ND if value is not a valid float (e.g., "ND", "<0.5", "--", etc.)
-    def is_nd(val):
+    # Flag ND results (treat exact "ND", case-insensitive, as non-detect)
+    df["ND Flag"] = df[result_col].str.upper() == "ND"
+
+    # Convert results to float where possible
+    def to_numeric(val):
         try:
-            float(val)
-            return False
-        except:
-            return True
+            return float(val)
+        except ValueError:
+            return None
 
-    df["ND Flag"] = df[result_col].apply(is_nd)
-    df["Result Value"] = pd.to_numeric(df[result_col], errors="coerce")
+    df["Result Value"] = df[result_col].apply(to_numeric)
 
-    summary = []
-    nd_only = []
+    results = []
+    nd_only_list = []
 
-    for analyte, group in df.groupby(analyte_col):
+    grouped = df.groupby(analyte_col)
+    for analyte, group in grouped:
         group = group.copy()
 
         if group["ND Flag"].all():
-            nd_only.append(analyte)
-            summary.append({
+            nd_only_list.append(analyte)
+            results.append({
                 "Constituent": analyte,
                 "Max Value": "",
                 "Well ID of Max": "",
@@ -41,23 +49,22 @@ def analyze_max_min_nd(df, well_col, analyte_col, result_col, date_col):
             })
             continue
 
-        valid = group[~group["ND Flag"] & group["Result Value"].notna()]
-        if valid.empty:
+        numeric_data = group[~group["ND Flag"] & group["Result Value"].notna()]
+        if numeric_data.empty:
             continue
 
-        max_row = valid.loc[valid["Result Value"].idxmax()]
-        min_row = valid.loc[valid["Result Value"].idxmin()]
+        max_row = numeric_data.loc[numeric_data["Result Value"].idxmax()]
+        min_row = numeric_data.loc[numeric_data["Result Value"].idxmin()]
 
-        summary.append({
+        results.append({
             "Constituent": analyte,
             "Max Value": max_row[result_col],
             "Well ID of Max": max_row[well_col],
-            "Date of Max": max_row[date_col],
+            "Date of Max": max_row[date_col].strftime("%Y-%m-%d") if pd.notnull(max_row[date_col]) else "",
             "Min Value": min_row[result_col],
             "Well ID of Min": min_row[well_col],
-            "Date of Min": min_row[date_col],
+            "Date of Min": min_row[date_col].strftime("%Y-%m-%d") if pd.notnull(min_row[date_col]) else "",
             "100% NDs": ""
         })
 
-    summary_df = pd.DataFrame(summary)
-    return summary_df, nd_only
+    return pd.DataFrame(results), nd_only_list

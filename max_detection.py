@@ -1,10 +1,8 @@
+# max_detection_app.py
 import streamlit as st
 import pandas as pd
-from io import BytesIO
-
 from core import load_data
 from max_min_analysis import analyze_max_min_nd
-
 
 def max_detection_app():
     st.title("📈 Max Detection Summary Tool")
@@ -39,7 +37,6 @@ def max_detection_app():
                 st.subheader("📊 Summary Table")
                 st.dataframe(summary_df, use_container_width=True)
 
-                # ✅ ND Summary block
                 if nd_only:
                     nd_statement = (
                         "🧪 **The following constituents resulted in 100% non-detect values:**\n\n"
@@ -51,7 +48,6 @@ def max_detection_app():
                 st.markdown("### ND Summary")
                 st.markdown(nd_statement)
 
-                # ✅ Download button
                 st.download_button(
                     "📥 Download as CSV",
                     summary_df.to_csv(index=False),
